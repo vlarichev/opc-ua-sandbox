@@ -67,6 +67,10 @@
       <div class="content">
         <!-- Panel: Browse -->
         <section class="panel active" id="panel-browse">
+          <div class="panel-intro">
+            <p>An OPC-UA server organises all its data in a <strong>tree of nodes</strong> — think of it like a folder structure on a hard drive. Each node is one piece of data: a sensor reading, a setpoint, a machine status. <strong>Browse</strong> lets you open that tree and explore what's inside.</p>
+            <p>We start at the <strong>root</strong> — the very top of the tree. Click any folder to open it, or click a leaf node to see its raw server response on the right. The <span class="intro-pill">ns=2;s=…</span> labels are the unique addresses OPC-UA uses to identify each node.</p>
+          </div>
           <div class="panel-body two-col">
             <div class="col">
               <div class="field-group">
@@ -87,6 +91,10 @@
 
         <!-- Panel: Read -->
         <section class="panel" id="panel-read">
+          <div class="panel-intro">
+            <p><strong>Read</strong> is the most common OPC-UA operation — you're asking the machine: <em>"what is the current value of these sensors right now?"</em> You can request multiple nodes in a single call and get all values back at once, which is much more efficient than asking one by one.</p>
+            <p>Select the nodes you're interested in below, then hit <strong>Read Values</strong>. Each result includes the value, its data type, a quality code (<span class="intro-pill intro-good">Good</span> means the server is confident in the reading), and a timestamp of when the value was last updated.</p>
+          </div>
           <div class="panel-body two-col">
             <div class="col">
               <div class="field-group">
@@ -103,6 +111,10 @@
 
         <!-- Panel: Write -->
         <section class="panel" id="panel-write">
+          <div class="panel-intro">
+            <p><strong>Write</strong> sends a new value to the machine — like turning a physical dial or flipping a switch, but over the network. Not every node accepts writes; only nodes the server explicitly marks as writable (usually setpoints and controls, not sensor readings) will respond.</p>
+            <p>In this simulator, <strong>Temperature Set Point</strong> and <strong>Valve Control</strong> are writable. Try setting the setpoint to a new °C value, or toggle the valve between <span class="intro-pill">true</span> (open) and <span class="intro-pill">false</span> (closed). The server responds with the old and new value so you can confirm the change landed.</p>
+          </div>
           <div class="panel-body two-col">
             <div class="col">
               <div class="field-group">
@@ -128,6 +140,10 @@
 
         <!-- Panel: Subscribe -->
         <section class="panel" id="panel-subscribe">
+          <div class="panel-intro">
+            <p>Polling (Read in a loop) is wasteful — your code would be hammering the server with requests even when nothing changes. <strong>Subscribe</strong> flips this around: you tell the server which nodes you care about, and it <em>pushes</em> updates to you only when values change. This is how real-time dashboards and alarms work in industrial systems.</p>
+            <p>Select the nodes to watch, hit <strong>Subscribe</strong>, and the live feed on the right will update every time the server sends new data. Values that changed since the last update flash <span class="intro-pill intro-accent">blue</span>. This simulator pushes updates every 2 seconds with small random drifts to mimic real sensor noise.</p>
+          </div>
           <div class="panel-body two-col">
             <div class="col">
               <div class="field-group">
@@ -150,6 +166,10 @@
 
         <!-- Panel: Call -->
         <section class="panel" id="panel-call">
+          <div class="panel-intro">
+            <p>OPC-UA servers can expose <strong>methods</strong> — server-side functions you trigger remotely, like pressing a button on the machine. Unlike Read/Write which operate on individual values, a method can perform a whole sequence of actions in one call: reset a set of alarms, run a self-diagnostic, or ramp a motor to a target speed.</p>
+            <p>Pick a method from the list. Some take input arguments (e.g. a target RPM), others run with no inputs at all. The server executes the logic and returns output arguments — in this simulator try <strong>Run Diagnostics</strong> for a quick system health check, or <strong>Reset Alarms</strong> to clear the high-temperature flag.</p>
+          </div>
           <div class="panel-body two-col">
             <div class="col">
               <div class="field-group">
@@ -169,9 +189,12 @@
 
         <!-- Panel: Endpoints -->
         <section class="panel" id="panel-endpoints">
+          <div class="panel-intro">
+            <p>Before your application can talk to an OPC-UA server, it needs to know <em>how</em> to connect — which URL to use, and what level of security the server requires. <strong>GetEndpoints</strong> is the handshake step: you call it without logging in, and the server tells you everything your client needs to establish a proper session.</p>
+            <p>The response lists one entry per supported configuration. <strong>Security Mode</strong> tells you whether messages must be signed and encrypted. <strong>Security Policy</strong> specifies the exact encryption algorithm (e.g. <span class="intro-pill">Basic256Sha256</span>). Real OPC-UA clients call this automatically during connection setup — here you can inspect it directly.</p>
+          </div>
           <div class="panel-body two-col">
             <div class="col">
-              <p class="muted">Retrieve all server endpoints and their security configurations.</p>
               <button class="btn-primary" id="endpoints-btn">Get Endpoints</button>
             </div>
             <div class="col">
@@ -182,6 +205,9 @@
 
         <!-- Panel: Code -->
         <section class="panel" id="panel-code">
+          <div class="panel-intro">
+            <p>These are ready-to-run code snippets showing how each OPC-UA request type is implemented in real code. Switch between <strong>Node.js</strong> (using the popular <code class="intro-code">node-opcua</code> library), <strong>Python</strong> (using <code class="intro-code">asyncua</code>), or <strong>REST</strong> calls to this simulator's own HTTP API. All snippets use the exact same node IDs as the mock data above.</p>
+          </div>
           <div class="code-panel-header">
             <div class="code-lang-tabs" id="code-lang-tabs">
               <button class="code-lang-tab active" data-lang="nodejs">Node.js</button>
