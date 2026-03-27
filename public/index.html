@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OPC-UA Simulator</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="layout">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="logo">
+        <span class="logo-icon">⬡</span>
+        <span class="logo-text">OPC-UA <em>Simulator</em></span>
+      </div>
+
+      <nav class="nav">
+        <button class="nav-btn active" data-panel="browse">
+          <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          Browse
+        </button>
+        <button class="nav-btn" data-panel="read">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          Read
+        </button>
+        <button class="nav-btn" data-panel="write">
+          <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          Write
+        </button>
+        <button class="nav-btn" data-panel="subscribe">
+          <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          Subscribe
+        </button>
+        <button class="nav-btn" data-panel="call">
+          <svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          Call Method
+        </button>
+        <button class="nav-btn" data-panel="endpoints">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+          Endpoints
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <span class="status-dot live"></span>
+        <span class="status-label">Server Live</span>
+      </div>
+    </aside>
+
+    <!-- Main content -->
+    <main class="main">
+      <header class="topbar">
+        <div class="topbar-title" id="panel-title">Browse Node Tree</div>
+        <div class="topbar-actions">
+          <button class="btn-ghost" id="clear-log-btn" title="Clear log">Clear Log</button>
+        </div>
+      </header>
+
+      <div class="content">
+        <!-- Panel: Browse -->
+        <section class="panel active" id="panel-browse">
+          <div class="panel-body two-col">
+            <div class="col">
+              <div class="field-group">
+                <label>Node ID</label>
+                <div class="input-row">
+                  <input type="text" id="browse-nodeid" placeholder="ns=0;i=84 (root)" />
+                  <button class="btn-primary" id="browse-btn">Browse</button>
+                </div>
+              </div>
+              <div class="breadcrumb" id="browse-breadcrumb"></div>
+              <div class="tree-result" id="browse-result"></div>
+            </div>
+            <div class="col">
+              <div class="response-box" id="browse-response"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Panel: Read -->
+        <section class="panel" id="panel-read">
+          <div class="panel-body two-col">
+            <div class="col">
+              <div class="field-group">
+                <label>Node IDs <span class="hint">(select multiple)</span></label>
+                <div class="node-list" id="read-node-list"></div>
+              </div>
+              <button class="btn-primary full-width" id="read-btn">Read Values</button>
+            </div>
+            <div class="col">
+              <div class="response-box" id="read-response"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Panel: Write -->
+        <section class="panel" id="panel-write">
+          <div class="panel-body two-col">
+            <div class="col">
+              <div class="field-group">
+                <label>Node ID</label>
+                <select id="write-nodeid">
+                  <option value="">Select writable node…</option>
+                </select>
+              </div>
+              <div class="field-group">
+                <label>Value</label>
+                <div class="input-row">
+                  <input type="text" id="write-value" placeholder="Enter value" />
+                  <button class="btn-primary" id="write-btn">Write</button>
+                </div>
+              </div>
+              <div class="write-hint" id="write-hint"></div>
+            </div>
+            <div class="col">
+              <div class="response-box" id="write-response"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Panel: Subscribe -->
+        <section class="panel" id="panel-subscribe">
+          <div class="panel-body two-col">
+            <div class="col">
+              <div class="field-group">
+                <label>Subscribe to Nodes</label>
+                <div class="node-list" id="sub-node-list"></div>
+              </div>
+              <div class="input-row">
+                <button class="btn-primary" id="sub-start-btn">Subscribe</button>
+                <button class="btn-ghost" id="sub-stop-btn" disabled>Unsubscribe</button>
+              </div>
+              <div class="sub-status" id="sub-status"></div>
+            </div>
+            <div class="col">
+              <div class="live-feed" id="sub-feed">
+                <div class="feed-empty">No active subscription</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Panel: Call -->
+        <section class="panel" id="panel-call">
+          <div class="panel-body two-col">
+            <div class="col">
+              <div class="field-group">
+                <label>Method</label>
+                <select id="call-method">
+                  <option value="">Select method…</option>
+                </select>
+              </div>
+              <div id="call-args-container"></div>
+              <button class="btn-primary full-width" id="call-btn">Call Method</button>
+            </div>
+            <div class="col">
+              <div class="response-box" id="call-response"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Panel: Endpoints -->
+        <section class="panel" id="panel-endpoints">
+          <div class="panel-body two-col">
+            <div class="col">
+              <p class="muted">Retrieve all server endpoints and their security configurations.</p>
+              <button class="btn-primary" id="endpoints-btn">Get Endpoints</button>
+            </div>
+            <div class="col">
+              <div class="response-box" id="endpoints-response"></div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- Activity Log -->
+      <div class="log-panel">
+        <div class="log-header">
+          <span class="log-title">Activity Log</span>
+          <span class="log-count" id="log-count">0 entries</span>
+        </div>
+        <div class="log-entries" id="log-entries">
+          <div class="log-empty">No activity yet</div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
