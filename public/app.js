@@ -826,29 +826,32 @@ const INSTALL_LABELS = {
 };
 
 function highlightCode(code, lang) {
-  // Escape HTML first
-  let s = code
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
+  const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
+  // Single-pass: alternation groups are tried left-to-right so comments/strings
+  // always win before keywords — no later pass can corrupt already-emitted spans.
   if (lang === 'python') {
-    s = s
-      .replace(/(#[^\n]*)/g, '<span class="tok-cmt">$1</span>')
-      .replace(/\b(import|from|async|await|def|class|with|as|for|in|if|return|print|True|False|None)\b/g, '<span class="tok-kw">$1</span>')
-      .replace(/("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|"""[\s\S]*?""")/g, '<span class="tok-str">$1</span>')
-      .replace(/\b(\d+(?:\.\d+)?)\b/g, '<span class="tok-num">$1</span>');
+    return esc(code).replace(
+      /(#[^\n]*)|("""[\s\S]*?"""|'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*")|\b(import|from|async|await|def|class|with|as|for|in|if|return|print|True|False|None)\b|\b(\d+(?:\.\d+)?)\b/g,
+      (_, cmt, str, kw, num) => {
+        if (cmt) return `<span class="tok-cmt">${cmt}</span>`;
+        if (str) return `<span class="tok-str">${str}</span>`;
+        if (kw)  return `<span class="tok-kw">${kw}</span>`;
+        if (num) return `<span class="tok-num">${num}</span>`;
+      }
+    );
   } else {
-    // JS / REST
-    s = s
-      .replace(/(\/\/[^\n]*)/g, '<span class="tok-cmt">$1</span>')
-      .replace(/\b(const|let|var|async|await|function|return|new|for|of|import|require|from|class|if|throw)\b/g, '<span class="tok-kw">$1</span>')
-      .replace(/(`(?:[^`\\]|\\.)*`|"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')/g, '<span class="tok-str">$1</span>')
-      .replace(/\b(\d+(?:\.\d+)?(?:_\d+)?)\b/g, '<span class="tok-num">$1</span>')
-      .replace(/\b([A-Z][A-Za-z0-9]+)\b/g, '<span class="tok-cls">$1</span>');
+    return esc(code).replace(
+      /(\/\/[^\n]*)|(`(?:[^`\\]|\\.)*`|"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')|\b(const|let|var|async|await|function|return|new|for|of|import|require|from|class|if|throw)\b|\b(\d+(?:\.\d+)?(?:_\d+)?)\b|\b([A-Z][A-Za-z][A-Za-z0-9]*)\b/g,
+      (_, cmt, str, kw, num, cls) => {
+        if (cmt) return `<span class="tok-cmt">${cmt}</span>`;
+        if (str) return `<span class="tok-str">${str}</span>`;
+        if (kw)  return `<span class="tok-kw">${kw}</span>`;
+        if (num) return `<span class="tok-num">${num}</span>`;
+        if (cls) return `<span class="tok-cls">${cls}</span>`;
+      }
+    );
   }
-
-  return s;
 }
 
 (function initCodePanel() {
