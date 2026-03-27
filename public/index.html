@@ -267,21 +267,68 @@
           </p>
           <p class="onboard-text">
             Every piece of data lives in a <strong>node</strong> — a temperature sensor, a valve, a motor speed.
-            Nodes have IDs like <code>ns=2;s=Temperature.Sensor1</code> and are organized in a browsable tree.
-            You can read values, write setpoints, subscribe to live changes, and call server methods.
+            Nodes are organised in a browsable tree and each has a unique address called a <strong>Node ID</strong>.
           </p>
         </div>
 
         <div class="onboard-section">
-          <h3 class="onboard-section-title">This simulator has 8 mock nodes</h3>
-          <div class="onboard-nodes">
-            <div class="onboard-node"><span class="onboard-node-icon">🌡</span><span>Temperature Sensor 1 &amp; 2 — live-drifting °C values</span></div>
-            <div class="onboard-node"><span class="onboard-node-icon">⬆</span><span>Main Line Pressure — bar, read-only</span></div>
-            <div class="onboard-node"><span class="onboard-node-icon">💧</span><span>Flow Rate Output — L/min</span></div>
-            <div class="onboard-node"><span class="onboard-node-icon">⚙</span><span>Motor Speed — RPM, read-only</span></div>
-            <div class="onboard-node"><span class="onboard-node-icon">🔧</span><span>Valve Control — Boolean, <em>writable</em></span></div>
-            <div class="onboard-node"><span class="onboard-node-icon">🎯</span><span>Temperature Set Point — °C, <em>writable</em></span></div>
-            <div class="onboard-node"><span class="onboard-node-icon">🔔</span><span>High Temperature Alarm — Boolean flag</span></div>
+          <h3 class="onboard-section-title">Anatomy of a Node ID</h3>
+          <div class="nodeid-anatomy">
+            <div class="nodeid-example">
+              <span class="nodeid-part ns">ns=2</span>
+              <span class="nodeid-sep">;</span>
+              <span class="nodeid-part id">s=Temperature.Sensor1</span>
+            </div>
+            <div class="nodeid-legend">
+              <div class="nodeid-legend-row">
+                <span class="nodeid-dot ns"></span>
+                <div>
+                  <strong>ns — Namespace</strong>
+                  <p>A numeric prefix that says <em>who owns this data</em>. <code>ns=0</code> is always OPC-UA's own infrastructure (the server itself). <code>ns=1</code> might belong to a Siemens PLC, <code>ns=2</code> to an ABB controller or — as in this simulator — to your own plant's custom data model. Each vendor or system gets its own namespace so IDs never clash.</p>
+                </div>
+              </div>
+              <div class="nodeid-legend-row">
+                <span class="nodeid-dot id"></span>
+                <div>
+                  <strong>s= — String identifier</strong>
+                  <p>The address of this specific node within its namespace. <code>s=</code> means it's a human-readable string path. You'll also see <code>i=</code> (a compact integer, e.g. <code>ns=0;i=85</code> is the standard "Objects" folder) — servers use integers internally for efficiency, strings for readability.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="onboard-section">
+          <h3 class="onboard-section-title">This simulator's data structure</h3>
+          <p class="onboard-text" style="margin-bottom:12px">A virtual chemical plant with sensors, controls, and alarms — all browsable from the tree below. <span style="color:var(--good)">Green nodes</span> are writable (you can send values to them); others are read-only.</p>
+          <div class="ob-tree">
+            <div class="ob-ns-block">
+              <div class="ob-ns-label">ns=0 · OPC-UA Standard</div>
+              <div class="ob-row root"><span class="ob-icon">◈</span><span class="ob-name">Root</span><span class="ob-addr">ns=0;i=84</span><span class="ob-desc">Entry point of every OPC-UA server</span></div>
+              <div class="ob-row l1"><span class="ob-line">└</span><span class="ob-icon">◈</span><span class="ob-name">Objects</span><span class="ob-addr">ns=0;i=85</span><span class="ob-desc">All useful data lives under here</span></div>
+            </div>
+            <div class="ob-ns-block accent">
+              <div class="ob-ns-label">ns=2 · Our Plant</div>
+              <div class="ob-row l1"><span class="ob-line">└</span><span class="ob-icon">▸</span><span class="ob-name">Plant</span><span class="ob-addr">ns=2;s=Plant</span><span class="ob-desc">Root of the plant data model</span></div>
+
+              <div class="ob-row l2"><span class="ob-line">├</span><span class="ob-icon">🌡</span><span class="ob-name">Temperature</span><span class="ob-addr">ns=2;s=Temperature</span><span class="ob-desc">Sensor group</span></div>
+              <div class="ob-row l3"><span class="ob-line">│ ├</span><span class="ob-icon">◈</span><span class="ob-name">Sensor 1</span><span class="ob-addr">…Temperature.Sensor1</span><span class="ob-val">72.4 °C</span></div>
+              <div class="ob-row l3"><span class="ob-line">│ └</span><span class="ob-icon">◈</span><span class="ob-name">Sensor 2</span><span class="ob-addr">…Temperature.Sensor2</span><span class="ob-val">68.1 °C</span></div>
+
+              <div class="ob-row l2"><span class="ob-line">├</span><span class="ob-icon">⬆</span><span class="ob-name">Pressure</span><span class="ob-addr">ns=2;s=Pressure</span><span class="ob-desc">Sensor group</span></div>
+              <div class="ob-row l3"><span class="ob-line">│ └</span><span class="ob-icon">◈</span><span class="ob-name">Main Line</span><span class="ob-addr">…Pressure.MainLine</span><span class="ob-val">4.2 bar</span></div>
+
+              <div class="ob-row l2"><span class="ob-line">├</span><span class="ob-icon">⚙</span><span class="ob-name">Control</span><span class="ob-addr">ns=2;s=Control</span><span class="ob-desc">Writable setpoints &amp; actuators</span></div>
+              <div class="ob-row l3"><span class="ob-line">│ ├</span><span class="ob-icon">◈</span><span class="ob-name">Valve</span><span class="ob-addr">…Valve.Control</span><span class="ob-val writable">true ✎</span></div>
+              <div class="ob-row l3"><span class="ob-line">│ ├</span><span class="ob-icon">◈</span><span class="ob-name">Set Point</span><span class="ob-addr">…SetPoint.Temperature</span><span class="ob-val writable">75.0 °C ✎</span></div>
+              <div class="ob-row l3"><span class="ob-line">│ └</span><span class="ob-icon">◈</span><span class="ob-name">Motor Speed</span><span class="ob-addr">…Motor.Speed</span><span class="ob-val">1450 RPM</span></div>
+
+              <div class="ob-row l2"><span class="ob-line">├</span><span class="ob-icon">💧</span><span class="ob-name">Flow</span><span class="ob-addr">ns=2;s=Flow</span><span class="ob-desc">Sensor group</span></div>
+              <div class="ob-row l3"><span class="ob-line">│ └</span><span class="ob-icon">◈</span><span class="ob-name">Output</span><span class="ob-addr">…FlowRate.Output</span><span class="ob-val">12.8 L/min</span></div>
+
+              <div class="ob-row l2"><span class="ob-line">└</span><span class="ob-icon">🔔</span><span class="ob-name">Alarms</span><span class="ob-addr">ns=2;s=Alarms</span><span class="ob-desc">Alarm flags</span></div>
+              <div class="ob-row l3"><span class="ob-line">  └</span><span class="ob-icon">◈</span><span class="ob-name">High Temp</span><span class="ob-addr">…Alarm.HighTemp</span><span class="ob-val">false</span></div>
+            </div>
           </div>
         </div>
 
