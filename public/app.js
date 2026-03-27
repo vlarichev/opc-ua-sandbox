@@ -385,3 +385,36 @@ document.getElementById('endpoints-btn').addEventListener('click', async () => {
   await Promise.all([loadNodes(), loadMethods()]);
   browseNode(null, 'Root');
 })();
+
+// ── Mobile: sidebar overlay ───────────────────────────────────────────────────
+
+(function initMobileNav() {
+  const backdrop = document.createElement('div');
+  backdrop.className = 'sidebar-backdrop';
+  document.querySelector('.layout').prepend(backdrop);
+
+  const sidebar = document.querySelector('.sidebar');
+  const menuBtn = document.getElementById('menu-toggle-btn');
+  if (!menuBtn) return;
+
+  function openSidebar() { sidebar.classList.add('open'); backdrop.classList.add('visible'); }
+  function closeSidebar() { sidebar.classList.remove('open'); backdrop.classList.remove('visible'); }
+
+  menuBtn.addEventListener('click', () => sidebar.classList.contains('open') ? closeSidebar() : openSidebar());
+  backdrop.addEventListener('click', closeSidebar);
+  document.querySelectorAll('.nav-btn').forEach(btn => btn.addEventListener('click', closeSidebar));
+})();
+
+// ── Mobile: collapsible log panel ─────────────────────────────────────────────
+
+(function initLogToggle() {
+  const logPanel = document.querySelector('.log-panel');
+  const logToggleBtn = document.getElementById('log-toggle-btn');
+  if (!logToggleBtn) return;
+
+  const header = document.querySelector('.log-header');
+  const toggle = () => logPanel.classList.toggle('expanded');
+
+  logToggleBtn.addEventListener('click', (e) => { e.stopPropagation(); toggle(); });
+  header.addEventListener('click', toggle);
+})();

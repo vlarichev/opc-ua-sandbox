@@ -336,4 +336,4 @@ app.get('/api/log', (req, res) => res.json(log));
 app.delete('/api/log', (req, res) => { log.length = 0; res.json({ ok: true }); });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`OPC-UA Simulator running at http://localhost:${PORT}`));
+app.listen(PORT, '0.0.0.0', () => console.log(`OPC-UA Simulator running at http://localhost:${PORT}`));
