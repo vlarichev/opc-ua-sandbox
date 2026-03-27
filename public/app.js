@@ -62,16 +62,33 @@ const panelTitles = {
   code: 'Code Snippets'
 };
 
+function activatePanel(panel) {
+  if (!panelTitles[panel]) return;
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.panel === panel));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.getElementById(`panel-${panel}`).classList.add('active');
+  document.getElementById('panel-title').textContent = panelTitles[panel];
+}
+
+function switchPanel(panel) {
+  if (!panelTitles[panel]) return;
+  activatePanel(panel);
+  history.pushState({ panel }, '', `#${panel}`);
+  document.querySelector('.sidebar')?.classList.remove('open');
+  document.querySelector('.sidebar-backdrop')?.classList.remove('visible');
+}
+
 document.querySelectorAll('.nav-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    const panel = btn.dataset.panel;
-    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-    btn.classList.add('active');
-    document.getElementById(`panel-${panel}`).classList.add('active');
-    document.getElementById('panel-title').textContent = panelTitles[panel];
-  });
+  btn.addEventListener('click', () => switchPanel(btn.dataset.panel));
 });
+
+// Direct URL / page reload with hash
+const _initPanel = window.location.hash.slice(1);
+if (panelTitles[_initPanel]) activatePanel(_initPanel);
+
+// Browser back / forward
+window.addEventListener('popstate', () => activatePanel(window.location.hash.slice(1) || 'browse'));
+window.addEventListener('hashchange', () => activatePanel(window.location.hash.slice(1) || 'browse'));
 
 document.getElementById('clear-log-btn').addEventListener('click', async () => {
   await fetch(`${API}/api/log`, { method: 'DELETE' });
@@ -1260,6 +1277,14 @@ function highlightCode(code, lang) {
   startBtn.addEventListener('click', closeModal);
   backdrop.addEventListener('click', (e) => { if (e.target === backdrop) closeModal(); });
   helpBtn.addEventListener('click', openModal);
+
+  // Onboarding cards navigate to the matching panel
+  document.querySelectorAll('.onboard-card[data-panel]').forEach(card => {
+    card.addEventListener('click', () => {
+      closeModal();
+      switchPanel(card.dataset.panel);
+    });
+  });
 
   // Show on first visit
   if (!localStorage.getItem('opc-onboarded')) openModal();

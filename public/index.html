@@ -407,28 +407,28 @@
         <div class="onboard-section">
           <h3 class="onboard-section-title">Six request types to explore</h3>
           <div class="onboard-cards">
-            <div class="onboard-card">
-              <div class="onboard-card-name">Browse</div>
+            <div class="onboard-card" data-panel="browse">
+              <div class="onboard-card-name">Browse <span class="onboard-card-arrow">→</span></div>
               <div class="onboard-card-desc">Navigate the node tree like a filesystem. Click any folder to drill in, use the breadcrumb to go back.</div>
             </div>
-            <div class="onboard-card">
-              <div class="onboard-card-name">Read</div>
+            <div class="onboard-card" data-panel="read">
+              <div class="onboard-card-name">Read <span class="onboard-card-arrow">→</span></div>
               <div class="onboard-card-desc">Select one or more nodes and fetch their current values in a single request. The raw OPC-UA response is shown on the right.</div>
             </div>
-            <div class="onboard-card">
-              <div class="onboard-card-name">Write</div>
+            <div class="onboard-card" data-panel="write">
+              <div class="onboard-card-name">Write <span class="onboard-card-arrow">→</span></div>
               <div class="onboard-card-desc">Push a new value to a writable node — try toggling the valve or changing the temperature setpoint.</div>
             </div>
-            <div class="onboard-card">
-              <div class="onboard-card-name">Subscribe</div>
+            <div class="onboard-card" data-panel="subscribe">
+              <div class="onboard-card-name">Subscribe <span class="onboard-card-arrow">→</span></div>
               <div class="onboard-card-desc">The server streams live updates every 2 seconds. Values flash blue when they change — like a real OPC-UA monitored item subscription.</div>
             </div>
-            <div class="onboard-card">
-              <div class="onboard-card-name">Call Method</div>
+            <div class="onboard-card" data-panel="call">
+              <div class="onboard-card-name">Call Method <span class="onboard-card-arrow">→</span></div>
               <div class="onboard-card-desc">Invoke server-side functions: reset all alarms, set motor speed to a target RPM, or run a diagnostics check.</div>
             </div>
-            <div class="onboard-card">
-              <div class="onboard-card-name">Endpoints</div>
+            <div class="onboard-card" data-panel="endpoints">
+              <div class="onboard-card-name">Endpoints <span class="onboard-card-arrow">→</span></div>
               <div class="onboard-card-desc">Discover what security policies the server advertises — None vs. SignAndEncrypt, security profile URLs, etc.</div>
             </div>
           </div>
