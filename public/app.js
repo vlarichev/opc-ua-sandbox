@@ -58,7 +58,8 @@ const panelTitles = {
   write: 'Write Node Value',
   subscribe: 'Subscribe to Changes',
   call: 'Call Method',
-  endpoints: 'Get Endpoints'
+  endpoints: 'Get Endpoints',
+  code: 'Code Snippets'
 };
 
 document.querySelectorAll('.nav-btn').forEach(btn => {
@@ -384,6 +385,512 @@ document.getElementById('endpoints-btn').addEventListener('click', async () => {
 (async () => {
   await Promise.all([loadNodes(), loadMethods()]);
   browseNode(null, 'Root');
+})();
+
+// ── Code panel ────────────────────────────────────────────────────────────────
+
+const CODE_SNIPPETS = {
+  nodejs: {
+    _install: 'npm install node-opcua',
+    browse: `const { OPCUAClient, NodeId } = require("node-opcua");
+
+const client = OPCUAClient.create({ endpointMustExist: false });
+await client.connect("opc.tcp://localhost:4840");
+const session = await client.createSession();
+
+// Browse the root Objects folder
+const result = await session.browse({
+  nodeId: "ns=0;i=85",           // Objects folder
+  browseDirection: "Forward",
+  referenceTypeId: "Organizes",
+  includeSubtypes: true,
+  nodeClassMask: 0,
+  resultMask: 63,
+});
+
+for (const ref of result.references) {
+  console.log(ref.displayName.text, ref.nodeId.toString());
+}
+
+await session.close();
+await client.disconnect();`,
+
+    read: `const { OPCUAClient, AttributeIds, DataType } = require("node-opcua");
+
+const client = OPCUAClient.create({ endpointMustExist: false });
+await client.connect("opc.tcp://localhost:4840");
+const session = await client.createSession();
+
+// Read multiple nodes in one request
+const nodesToRead = [
+  { nodeId: "ns=2;s=Temperature.Sensor1", attributeId: AttributeIds.Value },
+  { nodeId: "ns=2;s=Pressure.MainLine",   attributeId: AttributeIds.Value },
+  { nodeId: "ns=2;s=Motor.Speed",          attributeId: AttributeIds.Value },
+];
+
+const dataValues = await session.read(nodesToRead);
+
+dataValues.forEach((dv, i) => {
+  console.log(
+    nodesToRead[i].nodeId,
+    "=", dv.value.value,
+    "| status:", dv.statusCode.toString()
+  );
+});
+
+await session.close();
+await client.disconnect();`,
+
+    write: `const { OPCUAClient, DataType, Variant } = require("node-opcua");
+
+const client = OPCUAClient.create({ endpointMustExist: false });
+await client.connect("opc.tcp://localhost:4840");
+const session = await client.createSession();
+
+// Write a new setpoint value
+const statusCode = await session.writeSingleNode(
+  "ns=2;s=SetPoint.Temperature",
+  new Variant({ dataType: DataType.Double, value: 80.5 })
+);
+
+console.log("Write result:", statusCode.toString());
+
+// Write a boolean (valve open/close)
+const valveStatus = await session.writeSingleNode(
+  "ns=2;s=Valve.Control",
+  new Variant({ dataType: DataType.Boolean, value: false })
+);
+
+console.log("Valve write result:", valveStatus.toString());
+
+await session.close();
+await client.disconnect();`,
+
+    subscribe: `const { OPCUAClient, TimestampsToReturn, AttributeIds } = require("node-opcua");
+
+const client = OPCUAClient.create({ endpointMustExist: false });
+await client.connect("opc.tcp://localhost:4840");
+const session = await client.createSession();
+
+// Create a subscription (publishingInterval in ms)
+const subscription = await session.createSubscription2({
+  requestedPublishingInterval: 2000,
+  requestedLifetimeCount: 100,
+  requestedMaxKeepAliveCount: 10,
+  maxNotificationsPerPublish: 100,
+  publishingEnabled: true,
+  priority: 10,
+});
+
+subscription.on("keepalive", () => console.log("keepalive"));
+subscription.on("terminated", () => console.log("subscription ended"));
+
+// Monitor a node
+const monitoredItem = await subscription.monitor(
+  { nodeId: "ns=2;s=Temperature.Sensor1", attributeId: AttributeIds.Value },
+  { samplingInterval: 2000, discardOldest: true, queueSize: 10 },
+  TimestampsToReturn.Both
+);
+
+monitoredItem.on("changed", (dataValue) => {
+  console.log("Temperature:", dataValue.value.value, "°C");
+});
+
+// Keep alive for 30 seconds then clean up
+await new Promise(r => setTimeout(r, 30_000));
+await subscription.terminate();
+await session.close();
+await client.disconnect();`,
+
+    call: `const { OPCUAClient, DataType, Variant } = require("node-opcua");
+
+const client = OPCUAClient.create({ endpointMustExist: false });
+await client.connect("opc.tcp://localhost:4840");
+const session = await client.createSession();
+
+// Call a method: Reset all alarms (no input args)
+const resetResult = await session.call({
+  objectId: "ns=2;s=Plant",
+  methodId: "ns=2;s=Methods.ResetAlarms",
+  inputArguments: [],
+});
+console.log("Reset alarms:", resetResult.statusCode.toString());
+console.log("Output:", resetResult.outputArguments);
+
+// Call a method with arguments: Set motor speed
+const speedResult = await session.call({
+  objectId: "ns=2;s=Plant",
+  methodId: "ns=2;s=Methods.SetMotorSpeed",
+  inputArguments: [
+    new Variant({ dataType: DataType.Int32, value: 1800 })
+  ],
+});
+console.log("Motor speed set:", speedResult.outputArguments);
+
+await session.close();
+await client.disconnect();`,
+
+    endpoints: `const { OPCUAClient } = require("node-opcua");
+
+// GetEndpoints does not require an active session
+const client = OPCUAClient.create({ endpointMustExist: false });
+
+const endpoints = await client.getEndpoints("opc.tcp://localhost:4840");
+
+for (const ep of endpoints) {
+  console.log("URL:", ep.endpointUrl);
+  console.log("Security mode:", ep.securityMode.toString());
+  console.log("Security policy:", ep.securityPolicyUri);
+  console.log("---");
+}
+
+await client.disconnect();`,
+  },
+
+  python: {
+    _install: 'pip install asyncua',
+    browse: `import asyncio
+from asyncua import Client
+
+async def main():
+    async with Client(url="opc.tcp://localhost:4840") as client:
+        # Get the Objects folder node and browse its children
+        objects = client.get_node("ns=0;i=85")
+        children = await objects.get_children()
+
+        for child in children:
+            name = await child.read_display_name()
+            print(f"{name.Text}  ->  {child}")
+
+asyncio.run(main())`,
+
+    read: `import asyncio
+from asyncua import Client
+
+async def main():
+    async with Client(url="opc.tcp://localhost:4840") as client:
+        node_ids = [
+            "ns=2;s=Temperature.Sensor1",
+            "ns=2;s=Pressure.MainLine",
+            "ns=2;s=Motor.Speed",
+        ]
+
+        nodes = [client.get_node(nid) for nid in node_ids]
+
+        # Read all values concurrently
+        values = await asyncio.gather(*[n.read_value() for n in nodes])
+
+        for nid, val in zip(node_ids, values):
+            print(f"{nid} = {val}")
+
+asyncio.run(main())`,
+
+    write: `import asyncio
+from asyncua import Client
+from asyncua.ua import DataValue, Variant, VariantType
+
+async def main():
+    async with Client(url="opc.tcp://localhost:4840") as client:
+        # Write a Double value (temperature setpoint)
+        sp_node = client.get_node("ns=2;s=SetPoint.Temperature")
+        await sp_node.write_value(
+            DataValue(Variant(80.5, VariantType.Double))
+        )
+        print("Setpoint written")
+
+        # Write a Boolean (open/close valve)
+        valve = client.get_node("ns=2;s=Valve.Control")
+        await valve.write_value(
+            DataValue(Variant(False, VariantType.Boolean))
+        )
+        print("Valve closed")
+
+asyncio.run(main())`,
+
+    subscribe: `import asyncio
+from asyncua import Client
+from asyncua.common.subscription import SubHandler
+
+class DataChangeHandler(SubHandler):
+    def datachange_notification(self, node, val, data):
+        print(f"Change: {node}  ->  {val}")
+
+async def main():
+    async with Client(url="opc.tcp://localhost:4840") as client:
+        handler = DataChangeHandler()
+        subscription = await client.create_subscription(
+            period=2000,   # ms
+            handler=handler
+        )
+
+        node = client.get_node("ns=2;s=Temperature.Sensor1")
+        handle = await subscription.subscribe_data_change([node])
+
+        print("Subscribed — waiting 30 s for updates...")
+        await asyncio.sleep(30)
+
+        await subscription.unsubscribe(handle)
+        await subscription.delete()
+
+asyncio.run(main())`,
+
+    call: `import asyncio
+from asyncua import Client
+from asyncua.ua import Variant, VariantType
+
+async def main():
+    async with Client(url="opc.tcp://localhost:4840") as client:
+        plant = client.get_node("ns=2;s=Plant")
+
+        # Call method with no arguments — reset alarms
+        reset_method = client.get_node("ns=2;s=Methods.ResetAlarms")
+        result = await plant.call_method(reset_method)
+        print("Reset alarms:", result)
+
+        # Call method with an Int32 argument — set motor speed
+        speed_method = client.get_node("ns=2;s=Methods.SetMotorSpeed")
+        result = await plant.call_method(
+            speed_method,
+            Variant(1800, VariantType.Int32)
+        )
+        print("Motor speed result:", result)
+
+asyncio.run(main())`,
+
+    endpoints: `import asyncio
+from asyncua import Client
+
+async def main():
+    # GetEndpoints works without connecting a session
+    client = Client(url="opc.tcp://localhost:4840")
+    endpoints = await client.connect_and_get_server_endpoints()
+
+    for ep in endpoints:
+        print("URL:", ep.EndpointUrl)
+        print("Security mode:", ep.SecurityMode)
+        print("Security policy:", ep.SecurityPolicyUri)
+        print("---")
+
+asyncio.run(main())`,
+  },
+
+  rest: {
+    _install: null,
+    browse: `// Browse the simulator's node tree via HTTP POST
+// Works against this simulator's REST API
+
+const response = await fetch("http://localhost:3000/api/browse", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    nodeId: "ns=0;i=85",   // omit or set null to browse root
+  }),
+});
+
+const data = await response.json();
+// data.references — array of child nodes
+// data.statusCode — "Good" or an OPC-UA error code
+
+console.log(data.statusCode);
+data.references.forEach(ref => {
+  console.log(ref.displayName, "|", ref.nodeId, "|", ref.nodeClass);
+});`,
+
+    read: `// Read one or more node values via HTTP POST
+
+const response = await fetch("http://localhost:3000/api/read", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    nodeIds: [
+      "ns=2;s=Temperature.Sensor1",
+      "ns=2;s=Pressure.MainLine",
+      "ns=2;s=Motor.Speed",
+    ],
+  }),
+});
+
+const data = await response.json();
+// data.results — array matching the nodeIds order
+// Each result: { nodeId, displayName, value, dataType, unit, statusCode, timestamp }
+
+data.results.forEach(r => {
+  console.log(\`\${r.displayName}: \${r.value} \${r.unit} [\${r.statusCode}]\`);
+});`,
+
+    write: `// Write a value to a writable node via HTTP POST
+
+const response = await fetch("http://localhost:3000/api/write", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    nodeId: "ns=2;s=SetPoint.Temperature",
+    value: 82.5,
+  }),
+});
+
+const data = await response.json();
+// data.statusCode — "Good", "BadNotWritable", or "BadNodeIdUnknown"
+// data.previousValue — value before the write
+// data.newValue     — value after the write
+
+console.log(\`\${data.previousValue} -> \${data.newValue} [\${data.statusCode}]\`);
+
+// Toggle the valve (Boolean node)
+await fetch("http://localhost:3000/api/write", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ nodeId: "ns=2;s=Valve.Control", value: false }),
+});`,
+
+    subscribe: `// Subscribe to live updates via Server-Sent Events (SSE)
+
+const nodeIds = [
+  "ns=2;s=Temperature.Sensor1",
+  "ns=2;s=Pressure.MainLine",
+].join(",");
+
+const evtSource = new EventSource(
+  \`http://localhost:3000/api/subscribe?nodeIds=\${nodeIds}\`
+);
+
+evtSource.onmessage = (event) => {
+  const updates = JSON.parse(event.data);
+  // updates — array of { nodeId, value, statusCode, timestamp }
+
+  updates.forEach(u => {
+    console.log(\`[\${u.timestamp}] \${u.nodeId} = \${u.value}\`);
+  });
+};
+
+evtSource.onerror = () => {
+  console.error("SSE connection lost");
+  evtSource.close();
+};
+
+// Stop after 30 seconds
+setTimeout(() => evtSource.close(), 30_000);`,
+
+    call: `// Call a server-side method via HTTP POST
+
+// 1. List available methods
+const methodsRes = await fetch("http://localhost:3000/api/methods");
+const methods = await methodsRes.json();
+console.log(methods);
+// [ { methodId, displayName, inputArgs }, ... ]
+
+// 2. Call a method with no arguments
+const resetRes = await fetch("http://localhost:3000/api/call", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    methodId: "ns=2;s=Methods.ResetAlarms",
+    inputArguments: {},
+  }),
+});
+console.log(await resetRes.json());
+
+// 3. Call a method with arguments
+const speedRes = await fetch("http://localhost:3000/api/call", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    methodId: "ns=2;s=Methods.SetMotorSpeed",
+    inputArguments: { targetRPM: 1800 },
+  }),
+});
+console.log(await speedRes.json());`,
+
+    endpoints: `// Retrieve server endpoint configurations via HTTP POST
+
+const response = await fetch("http://localhost:3000/api/get-endpoints", {
+  method: "POST",
+});
+
+const data = await response.json();
+// data.endpoints — array of endpoint descriptors
+
+data.endpoints.forEach(ep => {
+  console.log("URL:", ep.endpointUrl);
+  console.log("Security mode:", ep.securityMode);
+  console.log("Policy:", ep.securityPolicy);
+  console.log("---");
+});`,
+  },
+};
+
+const INSTALL_LABELS = {
+  nodejs: 'Install: <code>npm install node-opcua</code>',
+  python: 'Install: <code>pip install asyncua</code>',
+  rest:   'No dependencies — runs in any browser or Node.js environment',
+};
+
+function highlightCode(code, lang) {
+  // Escape HTML first
+  let s = code
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+
+  if (lang === 'python') {
+    s = s
+      .replace(/(#[^\n]*)/g, '<span class="tok-cmt">$1</span>')
+      .replace(/\b(import|from|async|await|def|class|with|as|for|in|if|return|print|True|False|None)\b/g, '<span class="tok-kw">$1</span>')
+      .replace(/("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|"""[\s\S]*?""")/g, '<span class="tok-str">$1</span>')
+      .replace(/\b(\d+(?:\.\d+)?)\b/g, '<span class="tok-num">$1</span>');
+  } else {
+    // JS / REST
+    s = s
+      .replace(/(\/\/[^\n]*)/g, '<span class="tok-cmt">$1</span>')
+      .replace(/\b(const|let|var|async|await|function|return|new|for|of|import|require|from|class|if|throw)\b/g, '<span class="tok-kw">$1</span>')
+      .replace(/(`(?:[^`\\]|\\.)*`|"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')/g, '<span class="tok-str">$1</span>')
+      .replace(/\b(\d+(?:\.\d+)?(?:_\d+)?)\b/g, '<span class="tok-num">$1</span>')
+      .replace(/\b([A-Z][A-Za-z0-9]+)\b/g, '<span class="tok-cls">$1</span>');
+  }
+
+  return s;
+}
+
+(function initCodePanel() {
+  let currentLang = 'nodejs';
+  let currentReq  = 'browse';
+
+  const snippetEl  = document.getElementById('code-snippet-inner');
+  const installEl  = document.getElementById('code-install-hint');
+  const copyBtn    = document.getElementById('code-copy-btn');
+
+  function render() {
+    const code = CODE_SNIPPETS[currentLang][currentReq] || '';
+    snippetEl.innerHTML = highlightCode(code, currentLang);
+    installEl.innerHTML = INSTALL_LABELS[currentLang];
+  }
+
+  document.getElementById('code-lang-tabs').addEventListener('click', (e) => {
+    const btn = e.target.closest('.code-lang-tab');
+    if (!btn) return;
+    currentLang = btn.dataset.lang;
+    document.querySelectorAll('.code-lang-tab').forEach(b => b.classList.toggle('active', b === btn));
+    render();
+  });
+
+  document.getElementById('code-request-tabs').addEventListener('click', (e) => {
+    const btn = e.target.closest('.code-req-tab');
+    if (!btn) return;
+    currentReq = btn.dataset.req;
+    document.querySelectorAll('.code-req-tab').forEach(b => b.classList.toggle('active', b === btn));
+    render();
+  });
+
+  copyBtn.addEventListener('click', () => {
+    const raw = CODE_SNIPPETS[currentLang][currentReq] || '';
+    navigator.clipboard.writeText(raw).then(() => {
+      copyBtn.textContent = 'Copied!';
+      copyBtn.classList.add('copied');
+      setTimeout(() => { copyBtn.textContent = 'Copy'; copyBtn.classList.remove('copied'); }, 1800);
+    });
+  });
+
+  render();
 })();
 
 // ── Onboarding modal ──────────────────────────────────────────────────────────

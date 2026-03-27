@@ -40,6 +40,10 @@
           <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
           Endpoints
         </button>
+        <button class="nav-btn" data-panel="code">
+          <svg viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+          Code
+        </button>
       </nav>
 
       <div class="sidebar-footer">
@@ -174,6 +178,30 @@
               <div class="response-box" id="endpoints-response"></div>
             </div>
           </div>
+        </section>
+
+        <!-- Panel: Code -->
+        <section class="panel" id="panel-code">
+          <div class="code-panel-header">
+            <div class="code-lang-tabs" id="code-lang-tabs">
+              <button class="code-lang-tab active" data-lang="nodejs">Node.js</button>
+              <button class="code-lang-tab" data-lang="python">Python</button>
+              <button class="code-lang-tab" data-lang="rest">REST / HTTP</button>
+            </div>
+            <div class="code-request-tabs" id="code-request-tabs">
+              <button class="code-req-tab active" data-req="browse">Browse</button>
+              <button class="code-req-tab" data-req="read">Read</button>
+              <button class="code-req-tab" data-req="write">Write</button>
+              <button class="code-req-tab" data-req="subscribe">Subscribe</button>
+              <button class="code-req-tab" data-req="call">Call</button>
+              <button class="code-req-tab" data-req="endpoints">Endpoints</button>
+            </div>
+          </div>
+          <div class="code-snippet-wrap">
+            <button class="code-copy-btn" id="code-copy-btn" title="Copy to clipboard">Copy</button>
+            <pre class="code-snippet" id="code-snippet"><code id="code-snippet-inner"></code></pre>
+          </div>
+          <div class="code-install-hint" id="code-install-hint"></div>
         </section>
       </div>
 
