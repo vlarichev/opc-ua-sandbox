@@ -45,6 +45,7 @@
       <div class="sidebar-footer">
         <span class="status-dot live"></span>
         <span class="status-label">Server Live</span>
+        <span class="sidebar-credit">Vlad Larichev © 2026</span>
       </div>
     </aside>
 
@@ -54,6 +55,7 @@
         <div class="topbar-title" id="panel-title">Browse Node Tree</div>
         <div class="topbar-actions">
           <button class="btn-ghost btn-menu-toggle" id="menu-toggle-btn" title="Navigation">☰</button>
+          <button class="btn-ghost" id="help-btn" title="How to use">?</button>
           <button class="btn-ghost" id="clear-log-btn" title="Clear log">Clear Log</button>
         </div>
       </header>
@@ -187,6 +189,87 @@
         </div>
       </div>
     </main>
+  </div>
+
+  <!-- Onboarding modal -->
+  <div class="onboard-backdrop" id="onboard-backdrop">
+    <div class="onboard-modal" role="dialog" aria-modal="true" aria-label="Welcome to OPC-UA Simulator">
+      <div class="onboard-header">
+        <span class="onboard-logo">⬡</span>
+        <div>
+          <div class="onboard-title">OPC-UA Simulator</div>
+          <div class="onboard-subtitle">A hands-on testing environment for industrial connectivity</div>
+        </div>
+        <button class="onboard-close" id="onboard-close" aria-label="Close">✕</button>
+      </div>
+
+      <div class="onboard-body">
+        <div class="onboard-section">
+          <h3 class="onboard-section-title">What is OPC-UA?</h3>
+          <p class="onboard-text">
+            <strong>OPC UA</strong> (Unified Architecture) is the communication backbone of modern industrial systems —
+            factories, power plants, and SCADA platforms all use it to exchange data between sensors, controllers, and
+            software. Think of it as an API, but for machines.
+          </p>
+          <p class="onboard-text">
+            Every piece of data lives in a <strong>node</strong> — a temperature sensor, a valve, a motor speed.
+            Nodes have IDs like <code>ns=2;s=Temperature.Sensor1</code> and are organized in a browsable tree.
+            You can read values, write setpoints, subscribe to live changes, and call server methods.
+          </p>
+        </div>
+
+        <div class="onboard-section">
+          <h3 class="onboard-section-title">This simulator has 8 mock nodes</h3>
+          <div class="onboard-nodes">
+            <div class="onboard-node"><span class="onboard-node-icon">🌡</span><span>Temperature Sensor 1 &amp; 2 — live-drifting °C values</span></div>
+            <div class="onboard-node"><span class="onboard-node-icon">⬆</span><span>Main Line Pressure — bar, read-only</span></div>
+            <div class="onboard-node"><span class="onboard-node-icon">💧</span><span>Flow Rate Output — L/min</span></div>
+            <div class="onboard-node"><span class="onboard-node-icon">⚙</span><span>Motor Speed — RPM, read-only</span></div>
+            <div class="onboard-node"><span class="onboard-node-icon">🔧</span><span>Valve Control — Boolean, <em>writable</em></span></div>
+            <div class="onboard-node"><span class="onboard-node-icon">🎯</span><span>Temperature Set Point — °C, <em>writable</em></span></div>
+            <div class="onboard-node"><span class="onboard-node-icon">🔔</span><span>High Temperature Alarm — Boolean flag</span></div>
+          </div>
+        </div>
+
+        <div class="onboard-section">
+          <h3 class="onboard-section-title">Six request types to explore</h3>
+          <div class="onboard-cards">
+            <div class="onboard-card">
+              <div class="onboard-card-name">Browse</div>
+              <div class="onboard-card-desc">Navigate the node tree like a filesystem. Click any folder to drill in, use the breadcrumb to go back.</div>
+            </div>
+            <div class="onboard-card">
+              <div class="onboard-card-name">Read</div>
+              <div class="onboard-card-desc">Select one or more nodes and fetch their current values in a single request. The raw OPC-UA response is shown on the right.</div>
+            </div>
+            <div class="onboard-card">
+              <div class="onboard-card-name">Write</div>
+              <div class="onboard-card-desc">Push a new value to a writable node — try toggling the valve or changing the temperature setpoint.</div>
+            </div>
+            <div class="onboard-card">
+              <div class="onboard-card-name">Subscribe</div>
+              <div class="onboard-card-desc">The server streams live updates every 2 seconds. Values flash blue when they change — like a real OPC-UA monitored item subscription.</div>
+            </div>
+            <div class="onboard-card">
+              <div class="onboard-card-name">Call Method</div>
+              <div class="onboard-card-desc">Invoke server-side functions: reset all alarms, set motor speed to a target RPM, or run a diagnostics check.</div>
+            </div>
+            <div class="onboard-card">
+              <div class="onboard-card-name">Endpoints</div>
+              <div class="onboard-card-desc">Discover what security policies the server advertises — None vs. SignAndEncrypt, security profile URLs, etc.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="onboard-section onboard-tip">
+          <strong>Tip:</strong> Watch the <em>Activity Log</em> at the bottom as you click — every request and response is recorded with a timestamp and status code.
+        </div>
+      </div>
+
+      <div class="onboard-footer">
+        <button class="btn-primary onboard-start" id="onboard-start">Start Exploring</button>
+      </div>
+    </div>
   </div>
 
   <script src="app.js"></script>

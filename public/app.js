@@ -386,6 +386,26 @@ document.getElementById('endpoints-btn').addEventListener('click', async () => {
   browseNode(null, 'Root');
 })();
 
+// ── Onboarding modal ──────────────────────────────────────────────────────────
+
+(function initOnboarding() {
+  const backdrop = document.getElementById('onboard-backdrop');
+  const closeBtn = document.getElementById('onboard-close');
+  const startBtn = document.getElementById('onboard-start');
+  const helpBtn  = document.getElementById('help-btn');
+
+  function openModal()  { backdrop.classList.remove('hidden'); }
+  function closeModal() { backdrop.classList.add('hidden'); localStorage.setItem('opc-onboarded', '1'); }
+
+  closeBtn.addEventListener('click', closeModal);
+  startBtn.addEventListener('click', closeModal);
+  backdrop.addEventListener('click', (e) => { if (e.target === backdrop) closeModal(); });
+  helpBtn.addEventListener('click', openModal);
+
+  // Show on first visit
+  if (!localStorage.getItem('opc-onboarded')) openModal();
+})();
+
 // ── Mobile: sidebar overlay ───────────────────────────────────────────────────
 
 (function initMobileNav() {
