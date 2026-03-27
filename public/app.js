@@ -385,7 +385,356 @@ document.getElementById('endpoints-btn').addEventListener('click', async () => {
 (async () => {
   await Promise.all([loadNodes(), loadMethods()]);
   browseNode(null, 'Root');
+  hookLiveCode();
 })();
+
+// ── Live Code — inline snippets synced to form state ──────────────────────────
+
+let liveCodeLang = 'nodejs';
+
+const _S = { // boilerplate comment lines per language
+  nodejs: `// Requires: npm install node-opcua
+// const client = OPCUAClient.create({...});
+// const session = await client.createSession();\n`,
+  python: `# Requires: pip install asyncua
+# async with Client(url="opc.tcp://...") as client:\n`,
+  rest:   `// Simulator REST API — no setup needed\n`,
+};
+
+function _q(s) { return String(s).replace(/\\/g, '\\\\').replace(/"/g, '\\"'); }
+
+const LIVE_GEN = {
+  nodejs: {
+    browse: ({ nodeId }) => {
+      const nid = nodeId || 'ns=0;i=85';
+      return `${_S.nodejs}const result = await session.browse({
+  nodeId: "${_q(nid)}",
+  browseDirection: "Forward",
+  includeSubtypes: true,
+  resultMask: 63,
+});
+
+result.references.forEach(ref => {
+  console.log(ref.displayName.text, "→", ref.nodeId.toString());
+});`;
+    },
+    read: ({ nodeIds }) => {
+      if (!nodeIds.length) return '// Select at least one node on the left';
+      const items = nodeIds.map(id => `  { nodeId: "${_q(id)}", attributeId: AttributeIds.Value },`).join('\n');
+      return `${_S.nodejs}const nodesToRead = [\n${items}\n];
+
+const dataValues = await session.read(nodesToRead);
+dataValues.forEach((dv, i) => {
+  console.log(
+    nodesToRead[i].nodeId, "→", dv.value.value,
+    "| status:", dv.statusCode.toString()
+  );
+});`;
+    },
+    write: ({ nodeId, value, dataType }) => {
+      if (!nodeId) return '// Select a writable node on the left';
+      const dt = dataType === 'Boolean' ? 'Boolean' : dataType === 'Int32' ? 'Int32' : 'Double';
+      const val = dataType === 'Boolean'
+        ? (value === 'true' || value === true ? 'true' : 'false')
+        : (value || '0');
+      return `${_S.nodejs}const statusCode = await session.writeSingleNode(
+  "${_q(nodeId)}",
+  new Variant({ dataType: DataType.${dt}, value: ${val} })
+);
+
+console.log("Write result:", statusCode.toString());`;
+    },
+    subscribe: ({ nodeIds }) => {
+      if (!nodeIds.length) return '// Select at least one node on the left';
+      const list = nodeIds.map(id => `  "${_q(id)}",`).join('\n');
+      return `${_S.nodejs}const subscription = await session.createSubscription2({
+  requestedPublishingInterval: 2000,
+  requestedLifetimeCount: 100,
+  publishingEnabled: true,
+});
+
+const nodeIds = [\n${list}\n];
+
+for (const nodeId of nodeIds) {
+  const item = await subscription.monitor(
+    { nodeId, attributeId: AttributeIds.Value },
+    { samplingInterval: 2000, queueSize: 10 },
+    TimestampsToReturn.Both
+  );
+  item.on("changed", dv => console.log(nodeId, "→", dv.value.value));
+}`;
+    },
+    call: ({ methodId, inputArguments }) => {
+      if (!methodId) return '// Select a method on the left';
+      const entries = Object.entries(inputArguments || {});
+      const argsStr = entries.length
+        ? `  inputArguments: [\n${entries.map(([k, v]) => `    new Variant({ dataType: DataType.Int32, value: ${v || 0} }), // ${k}`).join('\n')}\n  ],`
+        : '  inputArguments: [],';
+      return `${_S.nodejs}const result = await session.call({
+  objectId: "ns=2;s=Plant",
+  methodId:  "${_q(methodId)}",
+${argsStr}
+});
+
+console.log("Status:", result.statusCode.toString());
+console.log("Output:", result.outputArguments);`;
+    },
+    endpoints: () =>
+      `${_S.nodejs}// GetEndpoints needs no active session
+const endpoints = await client.getEndpoints(
+  "opc.tcp://localhost:4840"
+);
+
+endpoints.forEach(ep => {
+  console.log("URL:",    ep.endpointUrl);
+  console.log("Mode:",   ep.securityMode.toString());
+  console.log("Policy:", ep.securityPolicyUri);
+});`,
+  },
+
+  python: {
+    browse: ({ nodeId }) => {
+      const nid = nodeId || 'ns=0;i=85';
+      return `${_S.python}#     node = ...
+
+node = client.get_node("${_q(nid)}")
+children = await node.get_children()
+
+for child in children:
+    name = await child.read_display_name()
+    print(f"{name.Text}  →  {child}")`;
+    },
+    read: ({ nodeIds }) => {
+      if (!nodeIds.length) return '# Select at least one node on the left';
+      const list = nodeIds.map(id => `    "${_q(id)}",`).join('\n');
+      return `${_S.python}#     ...
+
+node_ids = [\n${list}\n]
+
+nodes  = [client.get_node(nid) for nid in node_ids]
+values = await asyncio.gather(*[n.read_value() for n in nodes])
+
+for nid, val in zip(node_ids, values):
+    print(f"{nid} = {val}")`;
+    },
+    write: ({ nodeId, value, dataType }) => {
+      if (!nodeId) return '# Select a writable node on the left';
+      const vt = dataType === 'Boolean' ? 'VariantType.Boolean' : dataType === 'Int32' ? 'VariantType.Int32' : 'VariantType.Double';
+      const val = dataType === 'Boolean'
+        ? (value === 'true' || value === true ? 'True' : 'False')
+        : (value || '0');
+      return `${_S.python}#     ...
+
+node = client.get_node("${_q(nodeId)}")
+await node.write_value(
+    DataValue(Variant(${val}, ${vt}))
+)
+print("Write successful")`;
+    },
+    subscribe: ({ nodeIds }) => {
+      if (!nodeIds.length) return '# Select at least one node on the left';
+      const list = nodeIds.map(id => `    client.get_node("${_q(id)}"),`).join('\n');
+      return `${_S.python}#     ...
+
+class Handler(SubHandler):
+    def datachange_notification(self, node, val, data):
+        print(f"{node} → {val}")
+
+subscription = await client.create_subscription(
+    period=2000, handler=Handler()
+)
+nodes = [\n${list}\n]
+await subscription.subscribe_data_change(nodes)
+
+await asyncio.sleep(30)
+await subscription.delete()`;
+    },
+    call: ({ methodId, inputArguments }) => {
+      if (!methodId) return '# Select a method on the left';
+      const entries = Object.entries(inputArguments || {});
+      const argsStr = entries.length
+        ? '\n' + entries.map(([k, v]) => `    Variant(${v || 0}, VariantType.Int32),  # ${k}`).join('\n')
+        : '';
+      return `${_S.python}#     ...
+
+plant  = client.get_node("ns=2;s=Plant")
+method = client.get_node("${_q(methodId)}")
+
+result = await plant.call_method(method,${argsStr}
+)
+print("Result:", result)`;
+    },
+    endpoints: () =>
+      `${_S.python}# No session needed
+
+client = Client(url="opc.tcp://localhost:4840")
+endpoints = await client.connect_and_get_server_endpoints()
+
+for ep in endpoints:
+    print("URL:",    ep.EndpointUrl)
+    print("Mode:",   ep.SecurityMode)
+    print("Policy:", ep.SecurityPolicyUri)`,
+  },
+
+  rest: {
+    browse: ({ nodeId }) => {
+      const body = JSON.stringify({ nodeId: nodeId || null }, null, 2);
+      return `${_S.rest}const res = await fetch("/api/browse", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify(${body}),
+});
+
+const { statusCode, references } = await res.json();
+references.forEach(ref => {
+  console.log(ref.displayName, "→", ref.nodeId);
+});`;
+    },
+    read: ({ nodeIds }) => {
+      if (!nodeIds.length) return '// Select at least one node on the left';
+      const body = JSON.stringify({ nodeIds }, null, 2);
+      return `${_S.rest}const res = await fetch("/api/read", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify(${body}),
+});
+
+const { results } = await res.json();
+results.forEach(r => {
+  console.log(\`\${r.displayName}: \${r.value} \${r.unit}\`);
+});`;
+    },
+    write: ({ nodeId, value }) => {
+      if (!nodeId) return '// Select a writable node on the left';
+      const body = JSON.stringify({ nodeId, value: value || '' }, null, 2);
+      return `${_S.rest}const res = await fetch("/api/write", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify(${body}),
+});
+
+const { statusCode, previousValue, newValue } = await res.json();
+console.log(\`\${previousValue} → \${newValue} [\${statusCode}]\`);`;
+    },
+    subscribe: ({ nodeIds }) => {
+      if (!nodeIds.length) return '// Select at least one node on the left';
+      const qs = nodeIds.join(',');
+      return `${_S.rest}const evtSource = new EventSource(
+  "/api/subscribe?nodeIds=${_q(qs)}"
+);
+
+// Server pushes updates every 2 s
+evtSource.onmessage = (e) => {
+  const updates = JSON.parse(e.data);
+  updates.forEach(u => console.log(u.nodeId, "→", u.value));
+};
+
+setTimeout(() => evtSource.close(), 30_000);`;
+    },
+    call: ({ methodId, inputArguments }) => {
+      if (!methodId) return '// Select a method on the left';
+      const body = JSON.stringify({ methodId, inputArguments: inputArguments || {} }, null, 2);
+      return `${_S.rest}const res = await fetch("/api/call", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify(${body}),
+});
+
+const { statusCode, outputArguments } = await res.json();
+console.log(outputArguments);`;
+    },
+    endpoints: () =>
+      `${_S.rest}const res = await fetch("/api/get-endpoints", {
+  method: "POST",
+});
+
+const { endpoints } = await res.json();
+endpoints.forEach(ep => {
+  console.log(ep.endpointUrl, ep.securityMode);
+});`,
+  },
+};
+
+function lcParams(panel) {
+  switch (panel) {
+    case 'browse':
+      return { nodeId: document.getElementById('browse-nodeid').value.trim() };
+    case 'read':
+      return { nodeIds: [...document.querySelectorAll('#read-node-list input:checked')].map(i => i.value) };
+    case 'write': {
+      const nodeId = document.getElementById('write-nodeid').value;
+      const node = allNodes.find(n => n.nodeId === nodeId);
+      return { nodeId, value: document.getElementById('write-value').value, dataType: node?.dataType };
+    }
+    case 'subscribe':
+      return { nodeIds: [...document.querySelectorAll('#sub-node-list input:checked')].map(i => i.value) };
+    case 'call': {
+      const methodId = document.getElementById('call-method').value;
+      const method = allMethods.find(m => m.methodId === methodId);
+      const inputArguments = {};
+      (method?.inputArgs || []).forEach(arg => {
+        const el = document.getElementById(`arg-${arg.name}`);
+        if (el) inputArguments[arg.name] = el.value;
+      });
+      return { methodId, inputArguments };
+    }
+    default: return {};
+  }
+}
+
+function renderLiveCode(panel) {
+  const el = document.getElementById(`${panel}-lc-inner`);
+  if (!el) return;
+  const gen = LIVE_GEN[liveCodeLang]?.[panel];
+  if (!gen) return;
+  const hlLang = liveCodeLang === 'python' ? 'python' : 'js';
+  el.innerHTML = highlightCode(gen(lcParams(panel)), hlLang);
+}
+
+function renderAllLiveCodes() {
+  ['browse', 'read', 'write', 'subscribe', 'call', 'endpoints'].forEach(renderLiveCode);
+}
+
+// Language buttons — all lcl-btn clicks (event delegation)
+document.addEventListener('click', e => {
+  const btn = e.target.closest('.lcl-btn');
+  if (!btn) return;
+  liveCodeLang = btn.dataset.lang;
+  document.querySelectorAll('.lcl-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.lang === liveCodeLang)
+  );
+  renderAllLiveCodes();
+});
+
+// Copy buttons
+document.addEventListener('click', e => {
+  const btn = e.target.closest('.lcl-copy');
+  if (!btn) return;
+  const panel = btn.dataset.panel;
+  const gen = LIVE_GEN[liveCodeLang]?.[panel];
+  if (!gen) return;
+  navigator.clipboard.writeText(gen(lcParams(panel))).then(() => {
+    btn.textContent = 'Copied!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1800);
+  });
+});
+
+function hookLiveCode() {
+  document.getElementById('browse-nodeid').addEventListener('input', () => renderLiveCode('browse'));
+  document.getElementById('read-node-list').addEventListener('change', () => renderLiveCode('read'));
+  document.getElementById('write-nodeid').addEventListener('change', () => renderLiveCode('write'));
+  document.getElementById('write-value').addEventListener('input', () => renderLiveCode('write'));
+  document.getElementById('sub-node-list').addEventListener('change', () => renderLiveCode('subscribe'));
+  document.getElementById('call-method').addEventListener('change', () => {
+    renderLiveCode('call');
+    // also re-hook arg inputs after they're dynamically added
+    setTimeout(() => {
+      document.getElementById('call-args-container').addEventListener('input', () => renderLiveCode('call'));
+    }, 50);
+  });
+  renderAllLiveCodes();
+}
 
 // ── Code panel ────────────────────────────────────────────────────────────────
 

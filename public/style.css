@@ -392,6 +392,83 @@ select option { background: var(--surface2); }
   border-radius: 4px; color: #c9a9ff;
 }
 
+/* ── Live code box (inline, synced with form) ─────────────────── */
+.col-right {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+}
+.col-right .response-box {
+  max-height: 180px;
+  min-height: 60px;
+}
+.col-right .live-feed {
+  max-height: 180px;
+  min-height: 80px;
+}
+
+.live-code-box {
+  background: #0a0c12;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 160px;
+}
+
+.live-code-header {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface2);
+  flex-shrink: 0;
+}
+.live-code-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--accent);
+  margin-right: auto;
+}
+.live-code-langs { display: flex; gap: 3px; }
+
+.lcl-btn {
+  font-size: 10px; font-weight: 500;
+  padding: 2px 7px; border-radius: 4px;
+  border: 1px solid var(--border);
+  background: transparent; color: var(--muted);
+  cursor: pointer; font-family: var(--font);
+  transition: all 0.12s;
+}
+.lcl-btn:hover { color: var(--text); }
+.lcl-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+.lcl-copy {
+  font-size: 10px;
+  padding: 2px 8px; border-radius: 4px;
+  border: 1px solid var(--border);
+  background: transparent; color: var(--muted);
+  cursor: pointer; font-family: var(--font);
+  transition: all 0.12s; margin-left: 3px;
+}
+.lcl-copy:hover { color: var(--text); }
+.lcl-copy.copied { color: var(--good); border-color: var(--good); }
+
+.live-code-pre {
+  margin: 0;
+  padding: 12px 14px;
+  font-family: var(--mono); font-size: 11px; line-height: 1.65;
+  color: #c8d0e8; overflow: auto; flex: 1;
+  white-space: pre;
+}
+.live-code-pre code { display: block; }
+
 /* ── Code panel ───────────────────────────────────────────────── */
 .code-panel-header {
   display: flex;
